@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
+  name          String?
+  imageUrl      String?
+  plan          Plan     @default(FREE)
+  promptsToday  Int      @default(0)
+  lastResetDate DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  prompts       Prompt[]
+  history       PromptHistory[]
+  subscription  Subscription?
+
+  @@map("users")
+}
+
+model Prompt {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  userInput   String
+  outputs     Json
+  isSaved     Boolean  @default(false)
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("prompts")
+}
+
+model PromptHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  userInput   String
+  outputs     Json
+  modelCount  Int
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("prompt_history")
+}
+
+model Template {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  category    TemplateCategory
+  userInput   String
+  isPremium   Boolean          @default(false)
+  usageCount  Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("templates")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  status               SubscriptionStatus @default(ACTIVE)
+  plan                 Plan               @default(FREE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+enum TemplateCategory {
+  MARKETING
+  SEO
+  CODING
+  BUSINESS
+  STARTUP
+  SOCIAL_MEDIA
+  CONTENT_CREATION
+  DESIGN
+  PHOTOGRAPHY
+  AI_ART
+  VIDEO_CREATION
+}
